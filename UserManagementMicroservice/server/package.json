@@ -1,0 +1,32 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "start": "node ./dist/server.js",
+    "server": "nodemon ./dist/server.js",
+    "watch": "tsc -w",
+    "dev": "concurrently \"npm run watch\" \"npm run server\" "
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.5.0",
+    "concurrently": "^9.1.2",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-validator": "^7.2.1",
+    "ldapjs": "^3.0.7",
+    "passport": "^0.7.0",
+    "passport-ldapauth": "^3.0.1",
+    "typescript": "^5.8.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/express-validator": "^2.20.33",
+    "@types/ldapjs": "^3.0.6",
+    "prisma": "^6.5.0"
+  }
+}
