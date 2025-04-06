@@ -46,7 +46,7 @@ enum ServiceType {
 // --- Core User Table (Implied Necessity) ---
 // This table is essential to link the emp_no from role tables
 // It would typically hold the primary identity information.
-model User {
+model AppUser {
   emp_no    BigInt @id @unique // Primary Key, corresponds to employee number (e.g., from LDAP)
   usr_email String @unique @db.VarChar(100) // User's unique email, likely login identifier
   role      Role // Uses the Role enum defined above
@@ -57,27 +57,27 @@ model User {
   // Relationship to the user's primary Centre
   centre Centre @relation("UserCentre", fields: [centre_id], references: [centre_id])
 
-  @@map("User")
+  @@map("AppUser")
 }
 
 // --- Organizational Structure Tables ---
 
 model Centre {
   centre_id Int     @id @default(autoincrement())
-  cn_name   String  @unique @db.VarChar(40)
+  cn_name   String  @unique @db.VarChar(255)
   netops_red BigInt?
 
   netopsRedirectSource MemberNetops? @relation("CentreNetopsRedirect", fields: [netops_red], references: [emp_no])
 
   // Relationships back
-  users            User[]            @relation("UserCentre")
+  users            AppUser[]            @relation("UserCentre")
   edCentreHeads    EdCentreHead[]    @relation("CentreEdCentreHeads")
-  hods             HodList[]         @relation("CentreHods")
+  hods             Hod[]         @relation("CentreHods")
   groupDepartments GroupDepartment[] @relation("CentreDepartments")
   memberNetops     MemberNetops?     @relation("CentreMemberNetops")
   webMasters       WebMaster?        @relation("CentreWebmasters")
-  drms             DrmList[]         @relation("CentreDrms")
-  arms             ArmList[]         @relation("CentreArms")
+  drms             Drm[]         @relation("CentreDrms")
+  arms             Arm[]         @relation("CentreArms")
 
   @@map("Centre")
 }
@@ -91,9 +91,9 @@ model GroupDepartment {
   centre    Centre   @relation("CentreDepartments", fields: [centre_id], references: [centre_id])
 
   // --- Relationships back from other tables ---
-  hods      HodList[] @relation("DepartmentHods") // Dept can have multiple HODs unless grp_id is unique in HodList
-  drms      DrmList[] @relation("DepartmentDrms")
-  arms      ArmList[] @relation("DepartmentArms")
+  hods      Hod[] @relation("DepartmentHods") // Dept can have multiple HODs unless grp_id is unique in HodList
+  drms      Drm[] @relation("DepartmentDrms")
+  arms      Arm[] @relation("DepartmentArms")
 
   // Optional: Add unique constraint if name must be unique within a centre
   @@unique([d_name, centre_id])
@@ -111,7 +111,7 @@ model EdCentreHead {
   tele_no   String  @unique
   mob_no    String  @unique
   centre_id Int     // Foreign key field (NOT NULL based on Java @JoinColumn)
-  is_active Boolean @default(false)
+  is_active Boolean @default(true)
 
   // Relationship back to the core User (Required 1-to-1)
  
@@ -122,7 +122,7 @@ model EdCentreHead {
 }
 
 // Assuming consistency, renaming Java Hod class to HodList model
-model HodList {
+model Hod {
   emp_no    BigInt  @id // PK, Links to User.emp_no
   hod_fname String
   hod_lname String
@@ -132,7 +132,7 @@ model HodList {
   centre_id Int     // Foreign key field (NOT NULL based on Java @JoinColumn)
   // Making grp_id unique as per original schema intent (1 HOD per Dept)
   grp_id    Int     @unique // Foreign key field referencing GroupDepartment (unique constraint added)
-  is_active Boolean @default(false)
+  is_active Boolean @default(true)
 
   // Relationship back to the core User (Required 1-to-1)
   // Relationship to the Centre (Required)
@@ -140,21 +140,21 @@ model HodList {
   // Relationship to the specific Department (Required 1-to-1 because grp_id is unique)
   department  GroupDepartment @relation("DepartmentHods", fields: [grp_id], references: [dept_id])
 
-  @@map("HodList") // Map explicitly to table name if needed
+  @@map("Hod") // Map explicitly to table name if needed
 }
 
 // Assuming consistency, renaming Java Drm class to DrmList model
-model DrmList {
+model Drm {
   emp_no    BigInt      @id // PK, Links to User.emp_no
+  desig     Designation? // Mapped from @Enumerated(EnumType.STRING)
   drm_fname String
   drm_lname String
   email_id  String      @unique
-  desig     Designation // Mapped from @Enumerated(EnumType.STRING)
-  tele_no   String      @unique
-  mob_no    String      @unique
+  tele_no   String?      @unique
+  mob_no    String?      @unique
   centre_id Int         // Foreign key field (NOT NULL based on Java @JoinColumn)
   grp_id    Int         // Foreign key field (NOT NULL based on previous schema, assuming Java implies required here)
-  is_active Boolean     @default(false)
+  is_active Boolean     @default(true)
 
   // Relationship back to the core User (Required 1-to-1)
   // Relationship to the Centre (Required)
@@ -162,22 +162,22 @@ model DrmList {
   // Relationship to the Department (Required)
   department  GroupDepartment @relation("DepartmentDrms", fields: [grp_id], references: [dept_id])
 
-  @@map("DrmList") // Map explicitly to table name if needed
+  @@map("Drm") // Map explicitly to table name if needed
 }
 
 // Assuming consistency, renaming Java Arm class to ArmList model
-model ArmList {
+model Arm {
   emp_no    BigInt      @id // PK, Links to User.emp_no
   arm_fname String
   arm_lname String
   email_id  String      @unique
   // unique = true on desig in Java seems incorrect, removing unique constraint here. Add if needed.
-  desig     Designation // Mapped from @Enumerated(EnumType.STRING)
-  tele_no   String      @unique
-  mob_no    String      @unique
+  desig     Designation? // Mapped from @Enumerated(EnumType.STRING)
+  tele_no   String?      @unique
+  mob_no    String?      @unique
   centre_id Int         // Foreign key field (NOT NULL based on Java @JoinColumn)
   grp_id    Int         // Foreign key field (NOT NULL based on Java @JoinColumn)
-  is_active Boolean     @default(false)
+  is_active Boolean     @default(true)
 
   // Relationship back to the core User (Required 1-to-1)
   // Relationship to the Centre (Required)
@@ -185,7 +185,7 @@ model ArmList {
   // Relationship to the Department (Required)
   department  GroupDepartment @relation("DepartmentArms", fields: [grp_id], references: [dept_id])
 
-  @@map("ArmList") // Map explicitly to table name if needed
+  @@map("Arm") // Map explicitly to table name if needed
 }
 
 model HodHpcIandE {
@@ -195,7 +195,7 @@ model HodHpcIandE {
   tele_no   String  @unique
   mob_no    String  @unique
   email_id  String  @unique
-  is_active Boolean @default(false)
+  is_active Boolean @default(true)
 
   // Relationship back to the core User (Required 1-to-1)
   // No Centre or Dept link in the Java code provided
@@ -213,7 +213,7 @@ model MemberNetops {
   email_id  String  @unique // Adding unique based on original schema
   // Making centre_id unique enforces the 1-to-1 relationship with Centre
   centre_id Int     @unique // Foreign key field (NOT NULL, Unique based on Java @OneToOne)
-  is_active Boolean @default(false)
+  is_active Boolean @default(true)
 
   // Relationship back to the core User (Required 1-to-1)
   // Relationship to the specific Centre (Required 1-to-1 because centre_id is unique)
@@ -233,7 +233,7 @@ model WebMaster {
   tele_no   String  @unique
   mob_no    String  @unique
   email_id  String  @unique // Adding unique based on original schema
-  is_active Boolean @default(false)
+  is_active Boolean @default(true)
   // Making centre_id unique enforces the 1-to-1 relationship with Centre
   centre_id Int     @unique // Foreign key field (NOT NULL, Unique based on Java @OneToOne)
 
@@ -243,3 +243,4 @@ model WebMaster {
 
   @@map("WebMaster")
 }
+
