@@ -16,6 +16,7 @@ const app_js_1 = __importDefault(require("./app.js"));
 const index_config_js_1 = require("./config/index.config.js");
 const database_config_js_1 = __importDefault(require("./config/database.config.js"));
 const PORT = index_config_js_1.config.port;
+const serviceDiscovery_js_1 = require("./utils/serviceDiscovery.js");
 const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield database_config_js_1.default.$connect();
@@ -29,7 +30,7 @@ const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
 const connectServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield connectDB();
-        app_js_1.default.listen(PORT, () => {
+        app_js_1.default.listen(PORT, "0.0.0.0", () => {
             console.log(`Server is running on port ${PORT} 🚀`);
         });
     }
@@ -38,3 +39,12 @@ const connectServer = () => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 connectServer();
+// Connect to Eureka
+serviceDiscovery_js_1.eurekaClient.start((error) => {
+    if (error) {
+        console.log("❌ Eureka registration failed:", error);
+    }
+    else {
+        console.log("✅ Registered with Eureka!");
+    }
+});

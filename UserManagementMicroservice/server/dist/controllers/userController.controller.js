@@ -12,69 +12,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserListByRole = exports.getUserDetailsByRole = void 0;
+exports.getGroupList = exports.getCentreList = exports.getUserListByRole = exports.getUserDetailsByRole = void 0;
 const database_config_js_1 = __importDefault(require("../config/database.config.js"));
-// import * as ldapService from "../services/ldapService";
-const client_1 = require("@prisma/client"); // Import the enum
 // --- Helper Function to Map Role String to Prisma Model/Enum ---
 const getRoleInfo = (roleString) => {
     switch (roleString.toLowerCase()) {
         case "drm":
-            return {
-                model: database_config_js_1.default.drmList,
-                enumValue: client_1.Role.DRM,
-                includeUser: true,
-                includeCentre: true,
-                includeGroup: true,
-            };
+            return database_config_js_1.default.drm;
         case "arm":
-            return {
-                model: database_config_js_1.default.armList,
-                enumValue: client_1.Role.ARM,
-                includeUser: true,
-                includeCentre: true,
-                includeGroup: true,
-            };
+            return database_config_js_1.default.arm;
         case "hod":
-            return {
-                model: database_config_js_1.default.hodList,
-                enumValue: client_1.Role.HOD,
-                includeUser: true,
-                includeCentre: true,
-                includeGroup: true,
-            };
+            return database_config_js_1.default.hod;
         case "ed":
-            return {
-                model: database_config_js_1.default.edCentreHead,
-                enumValue: client_1.Role.ED,
-                includeUser: true,
-                includeCentre: true,
-                includeGroup: false,
-            }; // ED not directly linked to GroupDept in schema
+            return database_config_js_1.default.edCentreHead; // ED not directly linked to GroupDept in schema
         case "webmaster":
-            return {
-                model: database_config_js_1.default.webMaster,
-                enumValue: client_1.Role.WEBMASTER,
-                includeUser: true,
-                includeCentre: true,
-                includeGroup: false,
-            }; // Webmaster not linked to GroupDept
+            return database_config_js_1.default.webMaster; // Webmaster not linked to GroupDept
         case "netops":
-            return {
-                model: database_config_js_1.default.memberNetops,
-                enumValue: client_1.Role.NETOPS,
-                includeUser: true,
-                includeCentre: true,
-                includeGroup: false,
-            }; // NetOps not linked to GroupDept
+            return database_config_js_1.default.memberNetops;
+        // NetOps not linked to GroupDept
         case "hod_hpc":
-            return {
-                model: database_config_js_1.default.hodHpcIandE,
-                enumValue: client_1.Role.HODHPC,
-                includeUser: true,
-                includeCentre: false,
-                includeGroup: false,
-            }; // HodHpc not linked to Centre/Group
+            return database_config_js_1.default.hodHpcIandE; // HodHpc not linked to Centre/Group
         default:
             return null;
     }
@@ -119,27 +76,10 @@ const getUserDetailsByRole = (req, res, next) => __awaiter(void 0, void 0, void 
             res.status(400).json({ message: "Invalid role specified." });
             return;
         }
-        // Construct include object based on roleInfo flags
-        const includes = {};
-        if (roleInfo.includeUser)
-            includes.user = {
-                select: {
-                    emp_no: true,
-                    usr_email: true,
-                    usr_fname: true,
-                    usr_lname: true,
-                    is_active: true,
-                }, // Select specific user fields
-            };
-        if (roleInfo.includeCentre)
-            includes.centre = { select: { centre_id: true, cn_name: true } }; // Select specific centre fields
-        if (roleInfo.includeGroup)
-            includes.group = { select: { dept_id: true, d_name: true } }; // Select specific group fields
         // Query the specific role table (e.g., prisma.drmList, prisma.hodList)
         // The type assertion `as any` is sometimes needed because Prisma's model types vary
-        const userDetails = yield roleInfo.model.findUnique({
+        const userDetails = yield roleInfo.findUnique({
             where: { emp_no: empNoBigInt }, // Find by employee number (which is the PK/FK)
-            include: includes,
         });
         if (!userDetails) {
             res
@@ -186,35 +126,14 @@ const getUserListByRole = (req, res, next) => __awaiter(void 0, void 0, void 0, 
             res.status(400).json({ message: "Invalid role specified." });
             return;
         }
-        // Construct include object
-        const includes = {};
-        if (roleInfo.includeUser)
-            includes.user = {
-                select: {
-                    emp_no: true,
-                    usr_email: true,
-                    usr_fname: true,
-                    usr_lname: true,
-                    is_active: true,
-                },
-            };
-        if (roleInfo.includeCentre)
-            includes.centre = { select: { centre_id: true, cn_name: true } };
-        if (roleInfo.includeGroup)
-            includes.group = { select: { dept_id: true, d_name: true } };
         // Query the specific role table for all active users
-        const userList = yield roleInfo.model.findMany({
+        const userList = yield roleInfo.findMany({
             where: {
                 is_active: true, // Filter by the active flag on the role table itself
-                // Optionally filter by user.is_active if you included it and want both checks
-                // user: {
-                //     is_active: true
-                // }
             },
-            include: includes,
             orderBy: {
                 // Optional: Add default sorting
-                user: { usr_fname: "asc" }, // Sort by last name if user is included
+                emp_no: "asc", // Sort by last name if user is included
                 // Or sort by a field on the role table directly, e.g., emp_no: 'asc'
             },
             // TODO: Add pagination later if needed (using skip, take)
@@ -227,3 +146,41 @@ const getUserListByRole = (req, res, next) => __awaiter(void 0, void 0, void 0, 
     }
 });
 exports.getUserListByRole = getUserListByRole;
+const getCentreList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { centreid } = req.params;
+    try {
+        const centre = yield database_config_js_1.default.centre.findUnique({
+            where: {
+                centre_id: parseInt(centreid),
+            },
+        });
+        if (!centre) {
+            res.status(404).json({ error: "Centre not found." });
+            return;
+        }
+        res.status(200).json(centre);
+    }
+    catch (error) {
+        res.status(400).send(`No centre found for centre_id ${centreid}`);
+    }
+});
+exports.getCentreList = getCentreList;
+const getGroupList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { groupid } = req.params;
+    try {
+        const group = yield database_config_js_1.default.groupDepartment.findUnique({
+            where: {
+                dept_id: parseInt(groupid),
+            },
+        });
+        if (!group) {
+            res.status(404).json({ error: "Centre not found." });
+            return;
+        }
+        res.status(200).json(group);
+    }
+    catch (error) {
+        res.status(400).send(`No centre found for centre_id ${groupid}`);
+    }
+});
+exports.getGroupList = getGroupList;

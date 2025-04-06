@@ -110,7 +110,7 @@ model EdCentreHead {
   email_id  String  @unique
   tele_no   String  @unique
   mob_no    String  @unique
-  centre_id Int     // Foreign key field (NOT NULL based on Java @JoinColumn)
+  centre_id Int     @unique
   is_active Boolean @default(true)
 
   // Relationship back to the core User (Required 1-to-1)
@@ -129,7 +129,7 @@ model Hod {
   email_id  String  @unique
   tele_no   String  @unique
   mob_no    String  @unique
-  centre_id Int     // Foreign key field (NOT NULL based on Java @JoinColumn)
+  centre_id Int     // Foreign key field 
   // Making grp_id unique as per original schema intent (1 HOD per Dept)
   grp_id    Int     @unique // Foreign key field referencing GroupDepartment (unique constraint added)
   is_active Boolean @default(true)
@@ -139,6 +139,8 @@ model Hod {
   centre      Centre          @relation("CentreHods", fields: [centre_id], references: [centre_id])
   // Relationship to the specific Department (Required 1-to-1 because grp_id is unique)
   department  GroupDepartment @relation("DepartmentHods", fields: [grp_id], references: [dept_id])
+
+  projectAssignments ProjectAssignment[] @relation("HODAssignments")
 
   @@map("Hod") // Map explicitly to table name if needed
 }
@@ -162,6 +164,8 @@ model Drm {
   // Relationship to the Department (Required)
   department  GroupDepartment @relation("DepartmentDrms", fields: [grp_id], references: [dept_id])
 
+    projectAssignments ProjectAssignment[] @relation("DRMAssignments")
+
   @@map("Drm") // Map explicitly to table name if needed
 }
 
@@ -184,6 +188,8 @@ model Arm {
   centre      Centre          @relation("CentreArms", fields: [centre_id], references: [centre_id])
   // Relationship to the Department (Required)
   department  GroupDepartment @relation("DepartmentArms", fields: [grp_id], references: [dept_id])
+
+    projectAssignments ProjectAssignment[] @relation("ARMAssignments")
 
   @@map("Arm") // Map explicitly to table name if needed
 }
@@ -242,5 +248,31 @@ model WebMaster {
   centre    Centre  @relation("CentreWebmasters", fields: [centre_id], references: [centre_id])
 
   @@map("WebMaster")
+
+
 }
 
+
+model ProjectAssignment {
+  // --- Fields based on your schema ---
+  project_id   BigInt  @id @default(autoincrement()) // Primary Key, assuming auto-increment
+  project_name String  @unique @db.VarChar(100)    // Unique project name, maps to VARCHAR(100)
+  project_remarks String @db.Text
+  // Foreign key fields (scalar fields)
+  drm_emp_no   BigInt  // Foreign key to DrmList.emp_no
+  arm_emp_no   BigInt  // Foreign key to ArmList.emp_no
+  hod_emp_no   BigInt  // Foreign key to HodList.emp_no
+
+  // --- Relations ---
+  // Defines the connection to the DrmList table using the drm_emp_no field
+  drm Drm @relation("DRMAssignments", fields: [drm_emp_no], references: [emp_no])
+
+  // Defines the connection to the ArmList table using the arm_emp_no field
+  arm Arm @relation("ARMAssignments", fields: [arm_emp_no], references: [emp_no])
+
+  // Defines the connection to the HodList table using the hod_emp_no field
+  hod Hod @relation("HODAssignments", fields: [hod_emp_no], references: [emp_no])
+
+  // Map the Prisma model to the specific database table name
+  @@map("ProjectAssignment")
+}

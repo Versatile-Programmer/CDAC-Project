@@ -5,13 +5,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const index_routes_js_1 = __importDefault(require("./routes/index.routes.js")); // Import the main router from routes/index.ts
+const cors_1 = __importDefault(require("cors"));
 const app = (0, express_1.default)();
 // --- Middleware ---
 // Parse JSON request bodies
 app.use(express_1.default.json());
 // Add other middleware like CORS if needed:
 // import cors from 'cors';
-// app.use(cors()); // Allow requests from your frontend domain
+app.use((0, cors_1.default)()); // Allow requests from your frontend domain
 // --- Routes ---
 // Mount the main router
 app.use(index_routes_js_1.default);

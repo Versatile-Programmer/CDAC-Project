@@ -1,7 +1,7 @@
 import {Router} from "express";
 import { validateUserParams, validateUserRole } from "../middleware/validateUserParams.middleware.js";
-import { getUserDetailsByRole,getUserListByRole } from "../controllers/userController.controller.js";
-import { validateRequest } from "../middleware/validateRequest.js";
+import { getUserDetailsByRole,getUserListByRole,getCentreList, getGroupList } from "../controllers/userController.controller.js";
+
 const router = Router();
 
 // GET /api/users/details/:role/:empNo
@@ -10,7 +10,6 @@ router.get(
   "/details/:role/:empNo",
   // authenticateToken, // Apply authentication
   validateUserParams,
-  validateRequest,
   getUserDetailsByRole
 );
 
@@ -22,8 +21,16 @@ router.get(
   "/list/:role",
   // authenticateToken, // Apply authentication
  validateUserRole,
-  validateRequest,
   getUserListByRole
 );
 
+
+// GET /api/users/centre/:centreid
+router.get("/centre/:centreid",  getCentreList);
+
+// GET /api/users/group/:groupid
+router.get("/group/:groupid",  getGroupList);
+
+
 export default router;
+

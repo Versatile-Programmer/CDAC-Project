@@ -26,7 +26,7 @@ export const validateUserParams = [
     ),
 ];
 
-export const validateUserRole = [
+export const validateUserRole = 
   param("role").custom((value: string) => {
     const allowedRoles = [
       "DRM",
@@ -41,5 +41,7 @@ export const validateUserRole = [
       throw new Error("Invalid role specified.");
     }
     return true;
-  })
-];
+  });
+
+
+

@@ -8,61 +8,20 @@ import { Role } from "@prisma/client"; // Import the enum
 const getRoleInfo = (roleString: string) => {
   switch (roleString.toLowerCase()) {
     case "drm":
-      return {
-        model: prisma.drmList,
-        enumValue: Role.DRM,
-        includeUser: true,
-        includeCentre: true,
-        includeGroup: true,
-      };
+      return prisma.drm;
     case "arm":
-      return {
-        model: prisma.armList,
-        enumValue: Role.ARM,
-        includeUser: true,
-        includeCentre: true,
-        includeGroup: true,
-      };
+      return prisma.arm
     case "hod":
-      return {
-        model: prisma.hodList,
-        enumValue: Role.HOD,
-        includeUser: true,
-        includeCentre: true,
-        includeGroup: true,
-      };
+      return prisma.hod
     case "ed":
-      return {
-        model: prisma.edCentreHead,
-        enumValue: Role.ED,
-        includeUser: true,
-        includeCentre: true,
-        includeGroup: false,
-      }; // ED not directly linked to GroupDept in schema
+      return prisma.edCentreHead; // ED not directly linked to GroupDept in schema
     case "webmaster":
-      return {
-        model: prisma.webMaster,
-        enumValue: Role.WEBMASTER,
-        includeUser: true,
-        includeCentre: true,
-        includeGroup: false,
-      }; // Webmaster not linked to GroupDept
+      return prisma.webMaster; // Webmaster not linked to GroupDept
     case "netops":
-      return {
-        model: prisma.memberNetops,
-        enumValue: Role.NETOPS,
-        includeUser: true,
-        includeCentre: true,
-        includeGroup: false,
-      }; // NetOps not linked to GroupDept
+      return prisma.memberNetops;
+       // NetOps not linked to GroupDept
     case "hod_hpc":
-      return {
-        model: prisma.hodHpcIandE,
-        enumValue: Role.HODHPC,
-        includeUser: true,
-        includeCentre: false,
-        includeGroup: false,
-      }; // HodHpc not linked to Centre/Group
+      return  prisma.hodHpcIandE; // HodHpc not linked to Centre/Group
     default:
       return null;
   }
@@ -117,28 +76,10 @@ export const getUserDetailsByRole = async (
        return;
     }
 
-    // Construct include object based on roleInfo flags
-    const includes: any = {};
-    if (roleInfo.includeUser)
-      includes.user = {
-        select: {
-          emp_no: true,
-          usr_email: true,
-          usr_fname: true,
-          usr_lname: true,
-          is_active: true,
-        }, // Select specific user fields
-      };
-    if (roleInfo.includeCentre)
-      includes.centre = { select: { centre_id: true, cn_name: true } }; // Select specific centre fields
-    if (roleInfo.includeGroup)
-      includes.group = { select: { dept_id: true, d_name: true } }; // Select specific group fields
-
     // Query the specific role table (e.g., prisma.drmList, prisma.hodList)
     // The type assertion `as any` is sometimes needed because Prisma's model types vary
-    const userDetails = await (roleInfo.model as any).findUnique({
+    const userDetails = await (roleInfo as any).findUnique({
       where: { emp_no: empNoBigInt }, // Find by employee number (which is the PK/FK)
-      include: includes,
     });
 
     if (!userDetails) {
@@ -195,36 +136,14 @@ export const getUserListByRole = async (
        return;
     }
 
-    // Construct include object
-    const includes: any = {};
-    if (roleInfo.includeUser)
-      includes.user = {
-        select: {
-          emp_no: true,
-          usr_email: true,
-          usr_fname: true,
-          usr_lname: true,
-          is_active: true,
-        },
-      };
-    if (roleInfo.includeCentre)
-      includes.centre = { select: { centre_id: true, cn_name: true } };
-    if (roleInfo.includeGroup)
-      includes.group = { select: { dept_id: true, d_name: true } };
-
     // Query the specific role table for all active users
-    const userList = await (roleInfo.model as any).findMany({
+    const userList = await (roleInfo as any).findMany({
       where: {
         is_active: true, // Filter by the active flag on the role table itself
-        // Optionally filter by user.is_active if you included it and want both checks
-        // user: {
-        //     is_active: true
-        // }
       },
-      include: includes,
       orderBy: {
         // Optional: Add default sorting
-        user: { usr_fname: "asc" }, // Sort by last name if user is included
+        emp_no: "asc",  // Sort by last name if user is included
         // Or sort by a field on the role table directly, e.g., emp_no: 'asc'
       },
       // TODO: Add pagination later if needed (using skip, take)
@@ -234,5 +153,47 @@ export const getUserListByRole = async (
     res.status(200).json(stringifyBigInts(userList));
   } catch (error) {
     next(error);
+  }
+};
+
+export const getCentreList = async (req: Request, res: Response):Promise<void> => {
+  const {centreid} = req.params;
+   try {
+    const centre = await prisma.centre.findUnique({
+      where: {
+        centre_id: parseInt(centreid),
+      },
+    });
+
+    if (!centre) {
+       res.status(404).json({ error: "Centre not found." });
+       return;
+    }
+    res.status(200).json(centre);
+    }catch (error) {
+    res.status(400).send(`No centre found for centre_id ${centreid}`);
+  }
+}
+
+
+export const getGroupList = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { groupid } = req.params;
+  try {
+    const group = await prisma.groupDepartment.findUnique({
+      where: {
+        dept_id: parseInt(groupid),
+      },
+    });
+
+    if (!group) {
+      res.status(404).json({ error: "Centre not found." });
+      return;
+    }
+    res.status(200).json(group);
+  } catch (error) {
+    res.status(400).send(`No centre found for centre_id ${groupid}`);
   }
 };

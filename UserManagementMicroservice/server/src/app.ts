@@ -1,6 +1,6 @@
 import express, { Express, Request, Response, NextFunction } from "express";
 import mainRouter from "./routes/index.routes.js"; // Import the main router from routes/index.ts
-
+import cors from "cors";
 const app: Express = express();
 
 // --- Middleware ---
@@ -8,7 +8,7 @@ const app: Express = express();
 app.use(express.json());
 // Add other middleware like CORS if needed:
 // import cors from 'cors';
-// app.use(cors()); // Allow requests from your frontend domain
+app.use(cors()); // Allow requests from your frontend domain
 
 // --- Routes ---
 // Mount the main router

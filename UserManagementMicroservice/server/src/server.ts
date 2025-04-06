@@ -2,6 +2,7 @@ import app from "./app.js";
 import { config } from "./config/index.config.js";
 import prisma from "./config/database.config.js";
 const PORT = config.port;
+import { eurekaClient  } from "./utils/serviceDiscovery.js";
 const connectDB = async () => {
   try {
     await prisma.$connect();
@@ -14,7 +15,7 @@ const connectDB = async () => {
 const connectServer = async () => {
   try {
     await connectDB();
-    app.listen(PORT, () => {
+    app.listen(PORT,"0.0.0.0", () => {
       console.log(`Server is running on port ${PORT} 🚀`);
     });
   } catch {
@@ -22,3 +23,11 @@ const connectServer = async () => {
   }
 };
 connectServer();
+// Connect to Eureka
+eurekaClient.start((error: unknown) => {
+  if (error) {
+    console.log("❌ Eureka registration failed:", error);
+  } else {
+    console.log("✅ Registered with Eureka!");
+  }
+});
