@@ -20,7 +20,7 @@ const getRoleInfo = (roleString: string) => {
     case "netops":
       return prisma.memberNetops;
     // NetOps not linked to GroupDept
-    case "hod_hpc":
+    case "hodhpc":
       return prisma.hodHpcIandE; // HodHpc not linked to Centre/Group
     default:
       return null;
@@ -192,6 +192,32 @@ export const getGroupList = async (
   }
 };
 
+//get all groupList
+export const getAllGroupList = async (req:Request,res:Response) =>{
+  const allGroups = await prisma.groupDepartment.findMany({
+    orderBy: {
+      dept_id: 'asc',
+    },
+  });
+  if(!allGroups){
+    res.status(400).send("Error in finding groups");
+    return;
+  }
+  res.status(200).json(allGroups);
+}
+//get all centreList
+export const getAllCentreList = async (req: Request, res: Response) => {
+  const allGroups = await prisma.centre.findMany({
+    orderBy: {
+      centre_id: "asc",
+    },
+  });
+  if (!allGroups) {
+    res.status(400).send("Error in finding groups");
+    return;
+  }
+  res.status(200).json(allGroups);
+};
 // GET /api/users//:empNo/officials
 // fetch the hod and netops of drm and arm
 export const getResponsibleOfficials = async (

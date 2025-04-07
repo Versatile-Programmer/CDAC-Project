@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getResponsibleOfficials = exports.getGroupList = exports.getCentreList = exports.getUserListByRole = exports.getUserDetailsByRole = void 0;
+exports.getResponsibleOfficials = exports.getAllCentreList = exports.getAllGroupList = exports.getGroupList = exports.getCentreList = exports.getUserListByRole = exports.getUserDetailsByRole = void 0;
 const database_config_js_1 = __importDefault(require("../config/database.config.js"));
 // --- Helper Function to Map Role String to Prisma Model/Enum ---
 const getRoleInfo = (roleString) => {
@@ -30,7 +30,7 @@ const getRoleInfo = (roleString) => {
         case "netops":
             return database_config_js_1.default.memberNetops;
         // NetOps not linked to GroupDept
-        case "hod_hpc":
+        case "hodhpc":
             return database_config_js_1.default.hodHpcIandE; // HodHpc not linked to Centre/Group
         default:
             return null;
@@ -178,6 +178,34 @@ const getGroupList = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.getGroupList = getGroupList;
+//get all groupList
+const getAllGroupList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const allGroups = yield database_config_js_1.default.groupDepartment.findMany({
+        orderBy: {
+            dept_id: 'asc',
+        },
+    });
+    if (!allGroups) {
+        res.status(400).send("Error in finding groups");
+        return;
+    }
+    res.status(200).json(allGroups);
+});
+exports.getAllGroupList = getAllGroupList;
+//get all centreList
+const getAllCentreList = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const allGroups = yield database_config_js_1.default.centre.findMany({
+        orderBy: {
+            centre_id: "asc",
+        },
+    });
+    if (!allGroups) {
+        res.status(400).send("Error in finding groups");
+        return;
+    }
+    res.status(200).json(allGroups);
+});
+exports.getAllCentreList = getAllCentreList;
 // GET /api/users//:empNo/officials
 // fetch the hod and netops of drm and arm
 const getResponsibleOfficials = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

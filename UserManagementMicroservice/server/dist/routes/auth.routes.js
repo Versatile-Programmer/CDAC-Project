@@ -22,6 +22,7 @@ const router = express_1.default.Router();
 //   employeeEmail:string,
 //   employeeCenter:string
 // }
+//POST: /api/auth/login
 router.post("/login", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, password } = req.body;
     if (!email || !password) {

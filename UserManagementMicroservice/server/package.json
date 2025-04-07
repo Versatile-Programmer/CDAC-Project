@@ -19,6 +19,7 @@
     "express": "^4.21.2",
     "express-validator": "^7.2.1",
     "ldapjs": "^3.0.7",
+    "openapi3-ts": "^4.4.0",
     "passport": "^0.7.0",
     "passport-ldapauth": "^3.0.1",
     "typescript": "^5.8.2",
@@ -32,6 +33,7 @@
     "@types/ldapjs": "^3.0.6",
     "cors": "^2.8.5",
     "eureka-js-client": "^4.5.0",
-    "prisma": "^6.5.0"
+    "prisma": "^6.5.0",
+    "zod-to-openapi": "^0.2.1"
   }
 }

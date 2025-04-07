@@ -9,6 +9,7 @@ const router = express.Router();
 //   employeeEmail:string,
 //   employeeCenter:string
 // }
+//POST: /api/auth/login
 router.post("/login", async (req, res):Promise<void> => {
   const { email, password } = req.body;
 
