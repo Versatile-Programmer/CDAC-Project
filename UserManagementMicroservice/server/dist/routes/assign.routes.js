@@ -1,6 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const assigmentController_controller_1 = require("../controllers/assigmentController.controller");
 const router = (0, express_1.Router)();
-// router.post("/",authMiddleware,assignmentSchemaValidation,assignmentController);
+// POST: /api/projects/assignment
+router.post("/assignment", 
+// authMiddleware,
+// assignmentSchemaValidation
+assigmentController_controller_1.assignmentController);
 exports.default = router;

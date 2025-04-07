@@ -19,4 +19,7 @@ validateUserParams_middleware_js_1.validateUserRole, userController_controller_j
 router.get("/centre/:centreid", userController_controller_js_1.getCentreList);
 // GET /api/users/group/:groupid
 router.get("/group/:groupid", userController_controller_js_1.getGroupList);
+// GET /api/users/:empNo/officials
+// fetch the hod and netops of drm and arm
+router.get("/:empNo/officials", userController_controller_js_1.getResponsibleOfficials);
 exports.default = router;

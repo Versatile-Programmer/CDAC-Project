@@ -259,9 +259,9 @@ model ProjectAssignment {
   project_name String  @unique @db.VarChar(100)    // Unique project name, maps to VARCHAR(100)
   project_remarks String @db.Text
   // Foreign key fields (scalar fields)
-  drm_emp_no   BigInt  // Foreign key to DrmList.emp_no
-  arm_emp_no   BigInt  // Foreign key to ArmList.emp_no
-  hod_emp_no   BigInt  // Foreign key to HodList.emp_no
+  drm_emp_no   BigInt  // Foreign key to Drm.emp_no
+  arm_emp_no   BigInt  // Foreign key to Arm.emp_no
+  hod_emp_no   BigInt  // Foreign key to Hod.emp_no
 
   // --- Relations ---
   // Defines the connection to the DrmList table using the drm_emp_no field

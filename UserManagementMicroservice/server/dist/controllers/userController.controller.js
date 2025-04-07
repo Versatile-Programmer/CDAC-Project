@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getGroupList = exports.getCentreList = exports.getUserListByRole = exports.getUserDetailsByRole = void 0;
+exports.getResponsibleOfficials = exports.getGroupList = exports.getCentreList = exports.getUserListByRole = exports.getUserDetailsByRole = void 0;
 const database_config_js_1 = __importDefault(require("../config/database.config.js"));
 // --- Helper Function to Map Role String to Prisma Model/Enum ---
 const getRoleInfo = (roleString) => {
@@ -82,9 +82,7 @@ const getUserDetailsByRole = (req, res, next) => __awaiter(void 0, void 0, void 
             where: { emp_no: empNoBigInt }, // Find by employee number (which is the PK/FK)
         });
         if (!userDetails) {
-            res
-                .status(404)
-                .json({
+            res.status(404).json({
                 message: `User details not found for role '${role}' and employee number '${empNo}'.`,
             });
             return;
@@ -92,9 +90,7 @@ const getUserDetailsByRole = (req, res, next) => __awaiter(void 0, void 0, void 
         // Important: Check if the base user is active (if included) or if the role record has its own active flag
         if ((userDetails.user && !userDetails.user.is_active) ||
             !userDetails.is_active) {
-            res
-                .status(404)
-                .json({
+            res.status(404).json({
                 message: `User details not found for role '${role}' and employee number '${empNo}' (user may be inactive).`,
             });
             return;
@@ -105,9 +101,7 @@ const getUserDetailsByRole = (req, res, next) => __awaiter(void 0, void 0, void 
     catch (error) {
         // Catch potential BigInt conversion errors or other issues
         if (error instanceof Error && error.message.includes("Cannot convert")) {
-            res
-                .status(400)
-                .json({ message: "Invalid employee number format." });
+            res.status(400).json({ message: "Invalid employee number format." });
             return;
         }
         next(error);
@@ -184,3 +178,88 @@ const getGroupList = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.getGroupList = getGroupList;
+// GET /api/users//:empNo/officials
+// fetch the hod and netops of drm and arm
+const getResponsibleOfficials = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { empNo } = req.params;
+    try {
+        const user = yield database_config_js_1.default.appUser.findUnique({
+            where: { emp_no: BigInt(empNo) },
+        });
+        if (!user) {
+            res.status(404).json({ error: "User not found." });
+            return;
+        }
+        let centreId = null;
+        let deptId = null;
+        if (user.role === "DRM") {
+            const drm = yield database_config_js_1.default.drm.findUnique({
+                where: { emp_no: BigInt(empNo) },
+                select: {
+                    centre_id: true,
+                    grp_id: true,
+                    is_active: true,
+                },
+            });
+            if (!drm || !drm.is_active) {
+                res.status(404).json({ error: "DRM is not active." });
+                return;
+            }
+            centreId = drm.centre_id;
+            deptId = drm.grp_id;
+        }
+        else if (user.role === "ARM") {
+            const arm = yield database_config_js_1.default.arm.findUnique({
+                where: { emp_no: BigInt(empNo) },
+                select: {
+                    centre_id: true,
+                    grp_id: true,
+                    is_active: true,
+                },
+            });
+            if (!arm || !arm.is_active) {
+                res.status(404).json({ error: "DRM is not active." });
+                return;
+            }
+            centreId = arm.centre_id;
+            deptId = arm.grp_id;
+        }
+        else {
+            res.status(400).json({ error: "Only DRM or ARM roles are supported." });
+            return;
+        }
+        const hod = yield database_config_js_1.default.hod.findFirst({
+            where: {
+                grp_id: deptId,
+                centre_id: centreId,
+                is_active: true,
+            },
+            select: {
+                emp_no: true,
+                hod_fname: true,
+                hod_lname: true,
+                email_id: true,
+            },
+        });
+        const netops = yield database_config_js_1.default.memberNetops.findUnique({
+            where: { centre_id: centreId, is_active: true },
+            select: {
+                emp_no: true,
+                fname: true,
+                lname: true,
+                email_id: true,
+            },
+        });
+        res.json({
+            role: user.role,
+            hod,
+            netops,
+        });
+        return;
+    }
+    catch (error) {
+        console.error("Error fetching responsible officials:", error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+exports.getResponsibleOfficials = getResponsibleOfficials;

@@ -2,138 +2,171 @@ import ldap, {
   SearchCallbackResponse,
   SearchOptions,
   SearchEntry,
-  SearchEntryObject,
 } from "ldapjs";
 import dotenv from "dotenv";
+import config from "../config/index.config";
 
 dotenv.config();
 
-const LDAP_URL = process.env.LDAP_URL || "ldap://localhost:389";
-const BIND_DN = process.env.LDAP_BIND_DN || "";
-const BIND_PASSWORD = process.env.LDAP_BIND_PASSWORD || "";
-const BASE_DN = process.env.LDAP_BASE_DN || "";
+const LDAP_URL = config.ldap.url;
+const BIND_DN = config.ldap.bindDN;
+const BIND_PASSWORD = config.ldap.bindPassword;
+const BASE_DN = config.ldap.searchBase;
+
+interface MyUser {
+  dn: string;
+  uidNumber: string;
+  cn: string;
+  mail: string;
+  gidNumber: string;
+}
+
+// Helper function to convert entry.attributes array to a plain object
+const ldapEntryToObject = (entry: SearchEntry): Partial<MyUser> => {
+  const obj: Partial<MyUser> = {};
+  for (const attribute of entry.attributes) {
+    if (attribute.type && attribute.values && attribute.values.length > 0) {
+      obj[attribute.type as keyof MyUser] = attribute.values[0];
+    }
+  }
+  return obj;
+};
 
 export const authenticateUser = async (email: string, password: string) => {
   return new Promise((resolve, reject) => {
     const client = ldap.createClient({ url: LDAP_URL });
 
-    // Bind as admin to search for the user
     client.bind(BIND_DN, BIND_PASSWORD, (err) => {
-      if (err) {
-        return reject(new Error("Admin Bind Failed"));
-      }
+      if (err) return reject(new Error("Admin Bind Failed"));
 
-      // Search for user by email
       const opts: SearchOptions = {
         filter: `(mail=${email})`,
         scope: "sub",
-        attributes: ["dn", "employeeNumber", "cn", "mail", "gidNumber"],
+        attributes: ["uidNumber", "cn", "mail", "gidNumber"], // don't ask for "dn" here
       };
 
-      client.search(
-        BASE_DN,
-        opts,
-        (err: Error | null, res: SearchCallbackResponse) => {
-          if (err) {
+      client.search(BASE_DN, opts, (err, res) => {
+        if (err) {
+          client.unbind();
+          return reject(new Error("LDAP Search Error"));
+        }
+
+        let userDn = "";
+        let uidNumber: string | null = null;
+        let fullName: string | null = null;
+        let employeeEmail: string | null = null;
+        let employeeCenter: string | null = null;
+        let gidNumber: string | null = null;
+
+        res.on("searchEntry", (entry: SearchEntry) => {
+          userDn = entry.dn.toString(); 
+          console.log("User DN:", userDn);
+
+          const obj = ldapEntryToObject(entry) as MyUser;
+          uidNumber = obj.uidNumber;
+          fullName = obj.cn;
+          employeeEmail = obj.mail;
+          
+          const centreMatch = userDn.match(/ou=([A-Z]{2}),ou=User/i);
+          employeeCenter = centreMatch ? centreMatch[1].toUpperCase() : null;
+
+          console.log("UID Number:", uidNumber);
+          console.log("Full Name:", fullName);
+          console.log("Email:", employeeEmail);
+          console.log("Centre:", employeeCenter);
+        });
+
+        res.on("end", async () => {
+          if (!userDn || !employeeEmail) {
             client.unbind();
-            return reject(new Error("LDAP Search Error"));
+            return reject(new Error("User not found"));
           }
-          let userDn : string ;
-          let employeeNumber: string | null = null;
-          let employeeName: string | null = null;
-          let employeeEmail: string | null = null;
-          let employeeCenter: string | null = null;
-          let gidNumber: string | null = null;
 
-          res.on("searchEntry", (entry: SearchEntry) => {
-            const user = entry;
-            // userDn = entry.toObject();
-            // console.log(userDn)
-            employeeNumber =
-              user.attributes.find((attr) => attr.type === "employeeNumber")
-                ?.values[0] || null;
-            console.log(employeeNumber);
-            employeeName =
-              user.attributes.find((attr) => attr.type === "cn")?.values[0] ||
-              null;
-            console.log(employeeName);
-            employeeEmail =
-              user.attributes.find((attr) => attr.type === "mail")?.values[0] ||
-              null;
-            console.log(employeeEmail);
-            gidNumber =
-              user.attributes.find((attr) => attr.type === "gidNumber")
-                ?.values[0] || null;
-            console.log(gidNumber);
-          });
-
-          res.on("end", async () => {
-            if (!employeeEmail) {
+          client.bind(userDn, password, async (err) => {
+            if (err) {
               client.unbind();
-              return reject(new Error("User not found"));
+              return reject(new Error("Invalid Credentials"));
             }
+            console.log("user authenticated");
 
-            // Bind as user to verify password
-            // client.bind(userDn, password, async (err:Error | null) => {
-            //   if (err) {
-            //     client.unbind();
-            //     return reject(new Error("Invalid Credentials"));
-            //   }
-
-              // Fetch employee center name from gidNumber
-              if (gidNumber) {
-                employeeCenter = await getCenterName(client, gidNumber);
-                console.log(employeeCenter);
-              }
-
-              client.unbind();
-              resolve({
-      
-                employeeNumber,
-                employeeName,
-                employeeEmail,
-                employeeCenter,
-              });
+            client.unbind();
+            resolve({
+              uidNumber,
+              fullName,
+              employeeEmail,
+              employeeCenter,
             });
           });
-        }
-      );
+        });
+      });
     });
-  };
-
-const getCenterName = (
-  client: ldap.Client,
-  gidNumber: string
-): Promise<string | null> => {
-  return new Promise((resolve, reject) => {
-    const opts: SearchOptions = {
-      filter: `(gidNumber=${gidNumber})`,
-      scope: "sub",
-      attributes: ["cn"],
-    };
-
-    client.search(
-      `ou=Centers,${BASE_DN}`,
-      opts,
-      (err: Error | null, res: SearchCallbackResponse) => {
-        if (err) {
-          return reject(new Error("LDAP Center Search Error"));
-        }
-
-        let centerName: string | null = null;
-
-        res.on("searchEntry", (entry) => {
-            const user = entry;
-          centerName=
-            user.attributes.find((attr) => attr.type === "cn")
-              ?.values[0] || null;
-              console.log(centerName);
-        });
-
-        res.on("end", () => {
-          resolve(centerName);
-        });
-      }
-    );
   });
 };
+
+interface LdapUser {
+  employeeEmail: string;
+  fullName: string;
+}
+
+// searching a user by uidnumber
+export const findUserByIdentifier = async (identifier:number):Promise<LdapUser> => {
+  return new Promise((resolve, reject) => {
+    const client = ldap.createClient({ url: LDAP_URL });
+
+    // Bind to the LDAP server
+    client.bind(BIND_DN, BIND_PASSWORD, (err) => {
+      if (err) {
+        client.unbind();
+        return reject(new Error("Admin Bind Failed"));
+      }
+
+      // Define search options
+      const opts: SearchOptions = {
+        filter: `uidNumber=${identifier}`,
+        scope: "sub",
+        attributes: ["cn", "mail"],
+      };
+       
+      // Perform the search
+      client.search(BASE_DN, opts, (err, res) => {
+        if (err) {
+          client.unbind();
+          return reject(new Error("LDAP Search Error"));
+        }
+
+         let fullName: string | null = null;
+         let employeeEmail: string | null = null;
+
+        res.on("searchEntry", (entry:SearchEntry) => {
+          const obj = ldapEntryToObject(entry) as MyUser;
+          fullName = obj.cn;
+          employeeEmail = obj.mail;
+          console.log("Full Name:", fullName);
+          console.log("email:", employeeEmail);
+      
+        });
+
+        res.on("error", (err) => {
+          client.unbind();
+          reject(new Error(`LDAP Search Error: ${err.message}`));
+        });
+
+        res.on("end", (result) => {
+          if (!fullName || !employeeEmail) {
+            client.unbind();
+            reject(new Error("User not found"));
+          } else {
+            resolve({
+              employeeEmail,
+              fullName
+            })
+          }
+          client.unbind();
+        });
+      });
+    });
+  });
+};
+
+
+

@@ -1,6 +1,6 @@
 // src/controllers/userController.ts
 import { Request, Response, NextFunction } from "express";
-import  prisma from "../config/database.config.js";
+import prisma from "../config/database.config.js";
 // import * as ldapService from "../services/ldapService";
 import { Role } from "@prisma/client"; // Import the enum
 
@@ -10,18 +10,18 @@ const getRoleInfo = (roleString: string) => {
     case "drm":
       return prisma.drm;
     case "arm":
-      return prisma.arm
+      return prisma.arm;
     case "hod":
-      return prisma.hod
+      return prisma.hod;
     case "ed":
       return prisma.edCentreHead; // ED not directly linked to GroupDept in schema
     case "webmaster":
       return prisma.webMaster; // Webmaster not linked to GroupDept
     case "netops":
       return prisma.memberNetops;
-       // NetOps not linked to GroupDept
+    // NetOps not linked to GroupDept
     case "hod_hpc":
-      return  prisma.hodHpcIandE; // HodHpc not linked to Centre/Group
+      return prisma.hodHpcIandE; // HodHpc not linked to Centre/Group
     default:
       return null;
   }
@@ -54,8 +54,6 @@ const stringifyBigInts = (obj: any): any => {
   return newObj;
 };
 
-
-
 /**
  * GET /api/users/details/:role/:empNo
  * Fetches full details for a specific user from their corresponding role table.
@@ -64,7 +62,7 @@ export const getUserDetailsByRole = async (
   req: Request,
   res: Response,
   next: NextFunction
-):Promise<void> => {
+): Promise<void> => {
   const { role, empNo } = req.params;
   const empNoBigInt = BigInt(empNo); // Convert param string to BigInt
 
@@ -72,8 +70,8 @@ export const getUserDetailsByRole = async (
     const roleInfo = getRoleInfo(role);
     if (!roleInfo) {
       // This check is technically redundant due to express-validator, but good practice
-       res.status(400).json({ message: "Invalid role specified." });
-       return;
+      res.status(400).json({ message: "Invalid role specified." });
+      return;
     }
 
     // Query the specific role table (e.g., prisma.drmList, prisma.hodList)
@@ -83,12 +81,10 @@ export const getUserDetailsByRole = async (
     });
 
     if (!userDetails) {
-       res
-        .status(404)
-        .json({
-          message: `User details not found for role '${role}' and employee number '${empNo}'.`,
-        });
-        return;
+      res.status(404).json({
+        message: `User details not found for role '${role}' and employee number '${empNo}'.`,
+      });
+      return;
     }
 
     // Important: Check if the base user is active (if included) or if the role record has its own active flag
@@ -96,12 +92,10 @@ export const getUserDetailsByRole = async (
       (userDetails.user && !userDetails.user.is_active) ||
       !userDetails.is_active
     ) {
-       res
-        .status(404)
-        .json({
-          message: `User details not found for role '${role}' and employee number '${empNo}' (user may be inactive).`,
-        });
-        return;
+      res.status(404).json({
+        message: `User details not found for role '${role}' and employee number '${empNo}' (user may be inactive).`,
+      });
+      return;
     }
 
     // Serialize BigInts to strings before sending
@@ -109,10 +103,8 @@ export const getUserDetailsByRole = async (
   } catch (error) {
     // Catch potential BigInt conversion errors or other issues
     if (error instanceof Error && error.message.includes("Cannot convert")) {
-       res
-        .status(400)
-        .json({ message: "Invalid employee number format." });
-        return;
+      res.status(400).json({ message: "Invalid employee number format." });
+      return;
     }
     next(error);
   }
@@ -126,14 +118,14 @@ export const getUserListByRole = async (
   req: Request,
   res: Response,
   next: NextFunction
-):Promise<void> => {
+): Promise<void> => {
   const { role } = req.params;
 
   try {
     const roleInfo = getRoleInfo(role);
     if (!roleInfo) {
-       res.status(400).json({ message: "Invalid role specified." });
-       return;
+      res.status(400).json({ message: "Invalid role specified." });
+      return;
     }
 
     // Query the specific role table for all active users
@@ -143,7 +135,7 @@ export const getUserListByRole = async (
       },
       orderBy: {
         // Optional: Add default sorting
-        emp_no: "asc",  // Sort by last name if user is included
+        emp_no: "asc", // Sort by last name if user is included
         // Or sort by a field on the role table directly, e.g., emp_no: 'asc'
       },
       // TODO: Add pagination later if needed (using skip, take)
@@ -156,9 +148,12 @@ export const getUserListByRole = async (
   }
 };
 
-export const getCentreList = async (req: Request, res: Response):Promise<void> => {
-  const {centreid} = req.params;
-   try {
+export const getCentreList = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { centreid } = req.params;
+  try {
     const centre = await prisma.centre.findUnique({
       where: {
         centre_id: parseInt(centreid),
@@ -166,15 +161,14 @@ export const getCentreList = async (req: Request, res: Response):Promise<void> =
     });
 
     if (!centre) {
-       res.status(404).json({ error: "Centre not found." });
-       return;
+      res.status(404).json({ error: "Centre not found." });
+      return;
     }
     res.status(200).json(centre);
-    }catch (error) {
+  } catch (error) {
     res.status(400).send(`No centre found for centre_id ${centreid}`);
   }
-}
-
+};
 
 export const getGroupList = async (
   req: Request,
@@ -195,5 +189,91 @@ export const getGroupList = async (
     res.status(200).json(group);
   } catch (error) {
     res.status(400).send(`No centre found for centre_id ${groupid}`);
+  }
+};
+
+// GET /api/users//:empNo/officials
+// fetch the hod and netops of drm and arm
+export const getResponsibleOfficials = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { empNo } = req.params;
+  try {
+    const user = await prisma.appUser.findUnique({
+      where: { emp_no: BigInt(empNo) },
+    });
+    if (!user) {
+      res.status(404).json({ error: "User not found." });
+      return;
+    }
+    let centreId: number | null = null;
+    let deptId: number | null = null;
+    if (user.role === "DRM") {
+      const drm = await prisma.drm.findUnique({
+        where: { emp_no: BigInt(empNo) },
+        select: {
+          centre_id: true,
+          grp_id: true,
+          is_active: true,
+        },
+      });
+      if (!drm || !drm.is_active) {
+        res.status(404).json({ error: "DRM is not active." });
+        return;
+      }
+      centreId = drm.centre_id;
+      deptId = drm.grp_id;
+    } else if (user.role === "ARM") {
+      const arm = await prisma.arm.findUnique({
+        where: { emp_no: BigInt(empNo) },
+        select: {
+          centre_id: true,
+          grp_id: true,
+          is_active: true,
+        },
+      });
+      if (!arm || !arm.is_active) {
+        res.status(404).json({ error: "DRM is not active." });
+        return;
+      }
+      centreId = arm.centre_id;
+      deptId = arm.grp_id;
+    } else {
+      res.status(400).json({ error: "Only DRM or ARM roles are supported." });
+      return;
+    }
+    const hod = await prisma.hod.findFirst({
+      where: {
+        grp_id: deptId,
+        centre_id: centreId,
+        is_active: true,
+      },
+      select: {
+        emp_no: true,
+        hod_fname: true,
+        hod_lname: true,
+        email_id: true,
+      },
+    });
+    const netops = await prisma.memberNetops.findUnique({
+      where: { centre_id: centreId, is_active: true },
+      select: {
+        emp_no: true,
+        fname: true,
+        lname: true,
+        email_id: true,
+      },
+    });
+
+    res.json({
+      role: user.role,
+      hod,
+      netops,
+    });
+    return;
+  } catch (error) {
+    console.error("Error fetching responsible officials:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };

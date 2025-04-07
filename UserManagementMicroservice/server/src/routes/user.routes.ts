@@ -1,6 +1,6 @@
 import {Router} from "express";
 import { validateUserParams, validateUserRole } from "../middleware/validateUserParams.middleware.js";
-import { getUserDetailsByRole,getUserListByRole,getCentreList, getGroupList } from "../controllers/userController.controller.js";
+import { getUserDetailsByRole,getUserListByRole,getCentreList, getGroupList,getResponsibleOfficials } from "../controllers/userController.controller.js";
 
 const router = Router();
 
@@ -31,6 +31,9 @@ router.get("/centre/:centreid",  getCentreList);
 // GET /api/users/group/:groupid
 router.get("/group/:groupid",  getGroupList);
 
+// GET /api/users/:empNo/officials
+// fetch the hod and netops of drm and arm
+router.get("/:empNo/officials", getResponsibleOfficials);
 
 export default router;
 

@@ -16,16 +16,6 @@ export const config = {
     bindDN: process.env.LDAP_BIND_DN || "", // Default to empty string
     bindPassword: process.env.LDAP_BIND_PASSWORD || "", // Default to empty string
     searchBase: process.env.LDAP_BASE_DN || "", // Default to empty string
-
-    // Include attributes and filters directly, defaulting if not set
-    userSearchFilter: process.env.LDAP_USER_SEARCH_FILTER || "(mail={email})",
-    attributes: {
-      empNo: process.env.LDAP_ATTR_EMP_NO || "employeeNumber",
-      email: process.env.LDAP_ATTR_EMAIL || "mail",
-      fname: process.env.LDAP_ATTR_FNAME || "givenName",
-      lname: process.env.LDAP_ATTR_LNAME || "sn",
-      center: process.env.LDAP_ATTR_CENTER, // Will be undefined if not set in .env
-    },
   },
 };
 
