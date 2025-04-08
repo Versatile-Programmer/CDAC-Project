@@ -28,8 +28,8 @@ app.get("/", (req, res) => {
 // 🛠️ Eureka Client Configuration
 exports.eurekaClient = new eureka_js_client_1.Eureka({
     instance: {
-        app: "user-management-service",
-        instanceId: `user-management-service-${PORT}`,
+        app: "notification-service",
+        instanceId: `notification-service-${PORT}`,
         hostName: localIP, // ✅ Use actual network IP
         ipAddr: localIP, // ✅ Use actual network IP
         statusPageUrl: `http://${localIP}:${PORT}`, // ✅ Use actual network IP
@@ -37,7 +37,7 @@ exports.eurekaClient = new eureka_js_client_1.Eureka({
             "@enabled": true,
             $: Number(PORT),
         },
-        vipAddress: "user-management-service",
+        vipAddress: "notification-service",
         dataCenterInfo: {
             "@class": "com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo",
             name: "MyOwn",

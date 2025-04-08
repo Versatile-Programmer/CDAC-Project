@@ -1,6 +1,7 @@
 // Define interfaces matching your expected webhook payload
+import { WebhookEventType } from "./event.types";
 export interface WebhookPayload {
-  eventType: string; // Consider using an Enum for known types
+  eventType: WebhookEventType; // Consider using an Enum for known types
   timestamp: string;
   triggeredBy: {
     emp_no: bigint;

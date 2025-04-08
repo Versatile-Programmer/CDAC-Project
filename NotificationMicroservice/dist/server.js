@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const app_1 = __importDefault(require("./app"));
 const config_1 = require("./config");
 const database_config_1 = __importDefault(require("./config/database.config"));
+const serviceDiscovery_1 = require("./utils/serviceDiscovery");
 const PORT = config_1.config.port;
 const connectDB = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -38,3 +39,11 @@ const connectServer = () => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 connectServer();
+serviceDiscovery_1.eurekaClient.start((error) => {
+    if (error) {
+        console.log("❌ Eureka registration failed:", error);
+    }
+    else {
+        console.log("✅ Registered with Eureka!");
+    }
+});

@@ -15,5 +15,5 @@ mainRouter.get("/health", (req, res) => {
 mainRouter.use("/api/v1", webhook_routes_1.default);
 // Mount the authenticated notification routes
 // All routes will be prefixed with /api/v1/notifications
-mainRouter.use("/api/notifications", notification_routes_1.default);
+mainRouter.use("/api/v1/notifications", notification_routes_1.default);
 exports.default = mainRouter;

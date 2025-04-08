@@ -12,7 +12,7 @@ mainRouter.get("/health", (req, res) => {
 mainRouter.use("/api/v1", apiRouter);
 // Mount the authenticated notification routes
 // All routes will be prefixed with /api/v1/notifications
-mainRouter.use("/api/notifications", notificationRouter);
+mainRouter.use("/api/v1/notifications", notificationRouter);
 
 
 

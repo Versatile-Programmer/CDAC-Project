@@ -22,10 +22,12 @@
     "prisma": "^6.5.0"
   },
   "devDependencies": {
+    "@types/eureka-js-client": "^4.5.9",
     "@types/express": "^5.0.1",
     "@types/node": "^22.13.17",
     "@types/nodemailer": "^6.4.17",
     "concurrently": "^9.1.2",
+    "eureka-js-client": "^4.5.0",
     "typescript": "^5.8.2"
   }
 }
